@@ -2,6 +2,7 @@ package com.spacex.persian.job;
 
 import com.spacex.persian.dto.TaskDTO;
 import com.spacex.persian.enums.TaskStatusEnum;
+import com.spacex.persian.service.DistributedLockService;
 import com.spacex.persian.service.TaskService;
 import com.spacex.persian.util.threads.ThreadPoolExecutor;
 import com.spacex.persian.util.threads.ThreadUtil;
@@ -26,13 +27,29 @@ public class TaskProcessor {
     @Resource
     private TaskService taskService;
 
+    @Resource
+    private DistributedLockService distributedLockService;
+
     @PostConstruct
     public void doJob() {
         logger.info(String.format("TaskProcessor#process args:%s", null));
         threadPoolExecutor.execute(() -> {
             TaskDTO taskDTO = taskService.getNextTask();
-            if (taskDTO == null || TaskStatusEnum.WAITING.getCode() != taskDTO.getTaskStatus()) {
+            if (taskDTO == null) {
                 ThreadUtil.sleep(30000L);
+                return;
+            }
+
+            if (TaskStatusEnum.WAITING.getCode() != taskDTO.getTaskStatus()) {
+                return;
+            }
+
+            Long taskId = taskDTO.getId();
+            String key = "" + taskId;
+            boolean acquireLock = distributedLockService.acquire(key, 1L, 50000L);
+
+            if (!acquireLock) {
+                logger.info("get lock failed and discard task...");
                 return;
             }
 
@@ -48,7 +65,7 @@ public class TaskProcessor {
     }
 
     public void process(TaskDTO taskDTO) {
-
+        logger.info("[Thread-Worker] job now!");
     }
 
     public void updateTaskStatus(Long taskId, TaskStatusEnum taskStatusEnum) {
