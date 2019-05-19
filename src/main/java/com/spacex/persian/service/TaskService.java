@@ -57,6 +57,7 @@ public class TaskService {
         Example.Criteria criteria = example.createCriteria();
         criteria.andEqualTo("id", taskId);
         TaskPO taskPO = BeanCopyUtil.map(taskUpdateDTO, TaskPO.class);
+        taskPO.setId(null);
         taskMapper.updateByExampleSelective(taskPO, example);
         return getById(taskId);
     }
