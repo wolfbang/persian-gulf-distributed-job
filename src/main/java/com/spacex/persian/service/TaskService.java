@@ -27,7 +27,7 @@ public class TaskService {
     public TaskDTO getNextTask() {
         Example example = new Example(TaskPO.class);
         Example.Criteria criteria = example.createCriteria();
-        criteria.andEqualTo("status", TaskStatusEnum.WAITING.getCode());
+        criteria.andEqualTo("taskStatus", TaskStatusEnum.WAITING.getCode());
         example.setOrderByClause("id asc");
         List<TaskPO> taskPOs = taskMapper.selectByExample(example);
         if (CollectionUtils.isEmpty(taskPOs)) {
