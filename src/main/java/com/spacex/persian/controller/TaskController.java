@@ -7,6 +7,8 @@ import com.spacex.persian.service.TaskService;
 import com.spacex.persian.util.JsonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,5 +38,16 @@ public class TaskController {
         logger.info(String.format("TaskController#update taskUpdateDTO:%s", JsonUtil.toJson(taskUpdateDTO)));
         TaskDTO taskDTO = taskService.update(taskUpdateDTO);
         return taskDTO;
+    }
+
+    @GetMapping
+    public TaskDTO getById(Long taskId) {
+        TaskDTO taskDTO = taskService.getById(taskId);
+        return taskDTO;
+    }
+
+    @DeleteMapping
+    public void delete(Long taskId) {
+        taskService.delete(taskId);
     }
 }
