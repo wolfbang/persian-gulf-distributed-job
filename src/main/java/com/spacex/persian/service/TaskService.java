@@ -27,7 +27,7 @@ public class TaskService {
     public TaskDTO getNextTask() {
         Example example = new Example(TaskPO.class);
         Example.Criteria criteria = example.createCriteria();
-        criteria.andEqualTo("status", TaskStatusEnum.WAITING.getCode());
+        criteria.andEqualTo("taskStatus", TaskStatusEnum.WAITING.getCode());
         example.setOrderByClause("id asc");
         List<TaskPO> taskPOs = taskMapper.selectByExample(example);
         if (CollectionUtils.isEmpty(taskPOs)) {
@@ -39,6 +39,10 @@ public class TaskService {
     }
 
     public TaskDTO getById(Long taskId) {
+        if (taskId == null) {
+            return null;
+        }
+
         Example example = new Example(TaskPO.class);
         Example.Criteria criteria = example.createCriteria();
         criteria.andEqualTo("id", taskId);
@@ -86,6 +90,18 @@ public class TaskService {
         taskMapper.insertSelective(taskPO);
         Long id = taskPO.getId();
         return getById(id);
+    }
+
+    public boolean delete(Long taskId) {
+        if (taskId == null) {
+            return false;
+        }
+
+        Example example = new Example(TaskPO.class);
+        Example.Criteria criteria = example.createCriteria();
+        criteria.andEqualTo("id", taskId);
+        Integer effectedRow = taskMapper.deleteByExample(example);
+        return effectedRow > 0;
     }
 
 }
