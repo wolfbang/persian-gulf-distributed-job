@@ -1,5 +1,6 @@
 package com.spacex.persian.service;
 
+import com.spacex.persian.dto.TaskCreateDTO;
 import com.spacex.persian.dto.TaskDTO;
 import com.spacex.persian.dto.TaskUpdateDTO;
 import com.spacex.persian.enums.TaskStatusEnum;
@@ -74,6 +75,17 @@ public class TaskService {
         taskPO.setTaskStatus(taskStatusEnum.getCode());
         taskMapper.updateByExampleSelective(taskPO, example);
         return getById(taskId);
+    }
+
+    public TaskDTO create(TaskCreateDTO taskCreateDTO) {
+        if (taskCreateDTO == null) {
+            return null;
+        }
+
+        TaskPO taskPO = BeanCopyUtil.map(taskCreateDTO, TaskPO.class);
+        taskMapper.insertSelective(taskPO);
+        Long id = taskPO.getId();
+        return getById(id);
     }
 
 }
