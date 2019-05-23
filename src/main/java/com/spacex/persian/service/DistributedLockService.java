@@ -17,6 +17,8 @@ public class DistributedLockService {
 
     private Logger logger = LoggerFactory.getLogger(DistributedLockService.class);
 
+    private static final Long RELEASE_SUCCESS = 1L;
+
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
@@ -27,5 +29,14 @@ public class DistributedLockService {
         RedisScript<Boolean> luaScript = new DefaultRedisScript<Boolean>(rateLimiterLuaScript, Boolean.class);
         boolean result = stringRedisTemplate.execute(luaScript, keys, limitMax.toString(), expiredTime.toString());
         return result;
+    }
+
+
+    public void releaseDistributedLock(String lockKey, String requestId) {
+        logger.info(String.format("DistributedLockServiceImpl#releaseDistributedLock lockKey:%s,requestId:%s", lockKey, requestId));
+        String releaseDistributedLockScript = DistributedLockLuaScript.getReleaseDistributedLockScript();
+        RedisScript<Long> redisScript = new DefaultRedisScript<Long>(releaseDistributedLockScript, Long.TYPE);
+        List<String> keys = Arrays.asList(lockKey);
+        stringRedisTemplate.delete(lockKey);
     }
 }
