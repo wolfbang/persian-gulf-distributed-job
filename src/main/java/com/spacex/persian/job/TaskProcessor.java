@@ -21,6 +21,7 @@ public class TaskProcessor {
     private Logger logger = LoggerFactory.getLogger(TaskProcessor.class);
 
     private final int capacity = 100;
+    private final int totalWorker = 50;
 
     private ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(5, 10, 2, TimeUnit.MINUTES, new ArrayBlockingQueue<>(capacity));
 
@@ -33,35 +34,43 @@ public class TaskProcessor {
     @PostConstruct
     public void doJob() {
         logger.info(String.format("TaskProcessor#process args:%s", null));
-        threadPoolExecutor.execute(() -> {
-            TaskDTO taskDTO = taskService.getNextTask();
-            if (taskDTO == null) {
-                ThreadUtil.sleep(30000L);
-                return;
-            }
 
-            if (TaskStatusEnum.WAITING.getCode() != taskDTO.getTaskStatus()) {
-                return;
-            }
+        for (int i = 0; i < totalWorker; i++) {
+            Worker worker = new Worker(i) {
+                @Override
+                public void run() {
+                    TaskDTO taskDTO = taskService.getNextTask();
+                    if (taskDTO == null) {
+                        ThreadUtil.sleep(30000L);
+                        return;
+                    }
 
-            Long taskId = taskDTO.getId();
-            String key = "" + taskId;
-            boolean acquireLock = distributedLockService.acquire(key, 1L, 50000L);
+                    if (TaskStatusEnum.WAITING.getCode() != taskDTO.getTaskStatus()) {
+                        return;
+                    }
 
-            if (!acquireLock) {
-                logger.info("get lock failed and discard task...");
-                return;
-            }
+                    Long taskId = taskDTO.getId();
+                    String key = "" + taskId;
+                    boolean acquireLock = distributedLockService.acquire(key, 1L, 50000L);
 
-            try {
-                updateTaskStatus(taskDTO.getId(), TaskStatusEnum.PROCESSING);
-                process(taskDTO);
-                updateTaskStatus(taskDTO.getId(), TaskStatusEnum.FINISHED);
-            } catch (Exception ex) {
-                updateTaskStatus(taskDTO.getId(), TaskStatusEnum.FAILED);
-                logger.warn("TaskProcessor#doJob error:%s", ex);
-            }
-        });
+                    if (!acquireLock) {
+                        logger.info("get lock failed and discard task...");
+                        return;
+                    }
+
+                    try {
+                        updateTaskStatus(taskDTO.getId(), TaskStatusEnum.PROCESSING);
+                        process(taskDTO);
+                        updateTaskStatus(taskDTO.getId(), TaskStatusEnum.FINISHED);
+                    } catch (Exception ex) {
+                        updateTaskStatus(taskDTO.getId(), TaskStatusEnum.FAILED);
+                        logger.warn("TaskProcessor#doJob error:%s", ex);
+                    }
+                }
+            };
+
+            threadPoolExecutor.execute(worker);
+        }
     }
 
     public void process(TaskDTO taskDTO) {
