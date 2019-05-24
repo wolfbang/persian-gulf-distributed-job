@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -50,6 +51,7 @@ public class TaskProcessor {
                     }
 
                     Long taskId = taskDTO.getId();
+                    String requestId = UUID.randomUUID().toString();
                     String key = "" + taskId;
                     boolean acquireLock = distributedLockService.acquire(key, 1L, 50000L);
 
@@ -65,6 +67,8 @@ public class TaskProcessor {
                     } catch (Exception ex) {
                         updateTaskStatus(taskDTO.getId(), TaskStatusEnum.FAILED);
                         logger.warn("TaskProcessor#doJob error:%s", ex);
+                    } finally {
+                        distributedLockService.releaseDistributedLock(key, requestId);
                     }
                 }
             };
