@@ -8,6 +8,7 @@ import com.spacex.persian.util.threads.ThreadPoolExecutor;
 import com.spacex.persian.util.threads.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -32,6 +33,9 @@ public class TaskProcessor {
     @Resource
     private DistributedLockService distributedLockService;
 
+    @Value("active.worker.total:50")
+    private Integer activeWorkerNumber;
+
     @PostConstruct
     public void doJob() {
         logger.info(String.format("TaskProcessor#process args:%s", null));
@@ -40,6 +44,13 @@ public class TaskProcessor {
             Worker worker = new Worker(i) {
                 @Override
                 public void run() {
+
+                    if (getId() > activeWorkerNumber) {
+                        logger.info(String.format("TaskProcessor#process  worker id:%s not activated!", getId()));
+                        ThreadUtil.sleep(30000L);
+                        return;
+                    }
+
                     TaskDTO taskDTO = taskService.getNextTask();
                     if (taskDTO == null) {
                         ThreadUtil.sleep(30000L);
